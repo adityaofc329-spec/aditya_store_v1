@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.adistore.v1"
-    compileSdk = 35
+    compileSdk = 36
     defaultConfig {
         applicationId = "com.adistore.v1"
         minSdk = 26

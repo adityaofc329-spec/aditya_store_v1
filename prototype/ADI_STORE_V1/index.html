@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ADI_STORE_V1</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#0b1020;color:#fff}
+header{padding:18px 16px;background:#111a33;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:2}
+h1{font-size:20px;margin:0}.wrap{max-width:1050px;margin:auto;padding:18px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.card{background:#151f3b;border:1px solid #29365e;border-radius:16px;overflow:hidden}.card img{width:100%;height:170px;object-fit:cover;background:#0b1020}.pad{padding:14px}.price{font-size:20px;font-weight:700;margin:8px 0}.btn{border:0;border-radius:10px;padding:11px 14px;background:#4f7cff;color:white;font-weight:700;cursor:pointer}.btn.secondary{background:#27365f}.btn.danger{background:#b9364b}.row{display:flex;gap:8px;flex-wrap:wrap}.panel{background:#111a33;border:1px solid #29365e;border-radius:16px;padding:18px;margin-bottom:18px}
+input,textarea{width:100%;padding:11px;border-radius:9px;border:1px solid #3a4770;background:#0b1020;color:#fff;margin:6px 0 12px}
+label{font-size:13px;color:#b9c3df}.hidden{display:none}.muted{color:#aab5d3;font-size:13px}
+.qr{max-width:260px;width:100%;display:block;margin:12px auto;border-radius:12px;background:#fff;padding:10px}
+table{width:100%;border-collapse:collapse}td,th{padding:10px;border-bottom:1px solid #29365e;text-align:left;font-size:13px}
+.notice{padding:12px;border-radius:10px;background:#251f0b;color:#ffd978;margin-bottom:14px}
+</style>
+</head>
+<body>
+<header><h1>🛒 ADI_STORE_V1</h1><div class="row"><button class="btn secondary" onclick="show('store')">Store</button><button class="btn secondary" onclick="show('login')">Admin</button></div></header>
+<main class="wrap">
+<section id="store">
+<div class="notice">Demo marketplace for digital items. Do not use it to bypass a game's rules or share passwords insecurely.</div>
+<div id="catalog" class="grid"></div>
+</section>
+
+<section id="checkout" class="hidden">
+<div class="panel"><h2>Checkout</h2><div id="checkoutItem"></div>
+<label>Your name</label><input id="buyerName">
+<label>WhatsApp / contact</label><input id="buyerContact">
+<label>Payment reference / UTR</label><input id="utr">
+<label>Payment screenshot (demo only)</label><input id="proof" type="file" accept="image/*">
+<div class="panel" style="background:#0b1020"><b>Pay via UPI</b><img id="qr" class="qr" alt="UPI QR"><div id="upiText" class="muted"></div></div>
+<button class="btn" onclick="placeOrder()">Submit Order</button> <button class="btn secondary" onclick="show('store')">Back</button>
+</div>
+</section>
+
+<section id="login" class="hidden">
+<div class="panel"><h2>Admin Login</h2>
+<label>Username</label><input id="adminUser">
+<label>Password</label><input id="adminPass" type="password">
+<button class="btn" onclick="login()">Login</button><p id="loginMsg" class="muted"></p>
+</div></section>
+
+<section id="admin" class="hidden">
+<div class="panel"><div class="row" style="justify-content:space-between"><h2>Admin Panel</h2><button class="btn secondary" onclick="logout()">Logout</button></div>
+<h3>Add / Edit Catalog Item</h3>
+<input id="editId" type="hidden">
+<label>Title</label><input id="title" placeholder="Digital item title">
+<label>Price (₹)</label><input id="price" type="number" min="0">
+<label>Image URL</label><input id="image" placeholder="https://...">
+<label>Description</label><textarea id="desc" rows="3"></textarea>
+<div class="row"><button class="btn" onclick="saveItem()">Save Item</button><button class="btn secondary" onclick="clearForm()">Clear</button></div>
+</div>
+<div class="panel"><h3>Catalog</h3><div id="adminCatalog"></div></div>
+<div class="panel"><h3>Orders</h3><div id="orders"></div></div>
+</section>
+</main>
+<script>
+const UPI_ID = "paytm.s2h179u@pty";
+const ADMIN_USER = "9588436709";
+const ADMIN_PASS = "aditya@00"; // Prototype only: move auth to a secure backend before deployment.
+let items = JSON.parse(localStorage.getItem("adi_items") || "[]");
+let orders = JSON.parse(localStorage.getItem("adi_orders") || "[]");
+let selected = null;
+
+if(!items.length){
+  items=[{id:Date.now(),title:"Demo Digital Item",price:499,image:"https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=900&q=80",desc:"Replace this demo listing from the admin panel."}];
+  saveAll();
+}
+function saveAll(){localStorage.setItem("adi_items",JSON.stringify(items));localStorage.setItem("adi_orders",JSON.stringify(orders));}
+function show(id){["store","checkout","login","admin"].forEach(x=>document.getElementById(x).classList.add("hidden"));document.getElementById(id).classList.remove("hidden");if(id==="store")renderStore();if(id==="admin"){renderAdmin();renderOrders();}}
+function renderStore(){catalog.innerHTML=items.map(i=>`<article class="card"><img src="${esc(i.image)}"><div class="pad"><h3>${esc(i.title)}</h3><div class="muted">${esc(i.desc)}</div><div class="price">₹${Number(i.price).toLocaleString("en-IN")}</div><button class="btn" onclick="startCheckout(${i.id})">Buy / Order</button></div></article>`).join("")}
+function startCheckout(id){selected=items.find(i=>i.id===id);if(!selected)return;checkoutItem.innerHTML=`<h3>${esc(selected.title)}</h3><p>${esc(selected.desc)}</p><div class="price">₹${Number(selected.price).toLocaleString("en-IN")}</div>`;upiText.textContent=UPI_ID;qr.src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data="+encodeURIComponent("upi://pay?pa="+UPI_ID+"&pn=ADI_STORE_V1&am="+selected.price+"&cu=INR");show("checkout")}
+function placeOrder(){if(!selected)return;let name=buyerName.value.trim(),contact=buyerContact.value.trim(),utr=window.utr.value.trim();if(!name||!contact||!utr){alert("Please fill name, contact and payment reference.");return}orders.unshift({id:"ORD"+Date.now(),item:selected.title,price:selected.price,name,contact,utr,status:"Pending",created:new Date().toLocaleString()});saveAll();alert("Order submitted. Admin can review it.");buyerName.value=buyerContact.value=window.utr.value="";show("store")}
+function login(){if(adminUser.value===ADMIN_USER&&adminPass.value===ADMIN_PASS){sessionStorage.setItem("adi_admin","1");show("admin")}else loginMsg.textContent="Invalid login."}
+function logout(){sessionStorage.removeItem("adi_admin");show("store")}
+function saveItem(){let id=editId.value?Number(editId.value):Date.now();let obj={id,title:title.value.trim(),price:Number(price.value||0),image:image.value.trim()||"https://via.placeholder.com/900x600?text=ADI+STORE",desc:desc.value.trim()};if(!obj.title)return alert("Title required");let idx=items.findIndex(x=>x.id===id);if(idx>=0)items[idx]=obj;else items.push(obj);saveAll();clearForm();renderAdmin();renderStore()}
+function editItem(id){let i=items.find(x=>x.id===id);editId.value=i.id;title.value=i.title;price.value=i.price;image.value=i.image;desc.value=i.desc;window.scrollTo({top:0,behavior:"smooth"})}
+function deleteItem(id){if(confirm("Delete this item?")){items=items.filter(x=>x.id!==id);saveAll();renderAdmin();renderStore()}}
+function clearForm(){editId.value=title.value=price.value=image.value=desc.value=""}
+function renderAdmin(){adminCatalog.innerHTML=items.map(i=>`<div class="panel"><b>${esc(i.title)}</b> — ₹${i.price}<div class="row" style="margin-top:8px"><button class="btn secondary" onclick="editItem(${i.id})">Edit</button><button class="btn danger" onclick="deleteItem(${i.id})">Delete</button></div></div>`).join("")}
+function renderOrders(){ordersEl=orders;orders.innerHTML=ordersEl.length?`<table><tr><th>ID</th><th>Item</th><th>Buyer</th><th>Amount</th><th>UTR</th><th>Status</th><th>Action</th></tr>${ordersEl.map(o=>`<tr><td>${o.id}</td><td>${esc(o.item)}</td><td>${esc(o.name)}<br>${esc(o.contact)}</td><td>₹${o.price}</td><td>${esc(o.utr)}</td><td>${o.status}</td><td><button class="btn" onclick="setStatus('${o.id}','Paid / Ready')">Mark Ready</button></td></tr>`).join("")}</table>`:"<p class='muted'>No orders yet.</p>"}
+function setStatus(id,status){let o=orders.find(x=>x.id===id);if(o){o.status=status;saveAll();renderOrders()}}
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
+renderStore();
+</script>
+</body>
+</html>

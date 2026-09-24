@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">ADI_STORE_V1</string>
+    <string name="supabase_url">https://yirrhcgccavojnibxwsa.supabase.co</string>
+    <string name="supabase_publishable_key">REPLACE_WITH_YOUR_SUPABASE_PUBLISHABLE_KEY</string>
+</resources>

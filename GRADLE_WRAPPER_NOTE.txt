@@ -1,0 +1,1 @@
+This project must include the Gradle wrapper (gradlew, gradlew.bat, gradle/wrapper/*) for the GitHub workflow to run. If these files are missing, open the project once in Android Studio or generate the wrapper with Gradle before running the GitHub Action.
